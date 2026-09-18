@@ -144,10 +144,6 @@ struct UsageSection: View {
             RecentUsageChart(snapshot: snapshot, model: model)
             }
             .modifier(UsageBlockHover(id: snapshot.id + "/tokens", model: model))
-            if snapshot.spendControlReached {
-                Label(model.text("已达到支出限制，剩余额度不代表可继续使用。", "Spending limit reached; remaining quota may not be usable."), systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
-            }
             ForEach(Array(snapshot.failures.enumerated()), id: \.offset) { _, error in
                 Text(model.message(error)).font(.caption).foregroundStyle(.orange)
             }
