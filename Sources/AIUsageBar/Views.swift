@@ -138,10 +138,6 @@ struct UsageSection: View {
             metric(model.text("累计 Token", "Lifetime tokens"), snapshot.totalTokensIncludingToday?.formatted() ?? "—")
             if let today = snapshot.todayUsage() {
                 metric(today.estimated ? model.text("今日 · 本地估算", "Today · local estimate") : model.text("今日 · 官方", "Today · official"), today.usage.tokens.formatted())
-                if today.estimated {
-                    Text(model.text("本地估算已计入界面累计和 30 天合计", "Local estimate included in the displayed totals"))
-                        .font(.caption2).foregroundStyle(.secondary)
-                }
             } else {
                 metric(model.text("今日消耗", "Today"), model.text("暂无数据", "Unavailable"))
             }
