@@ -189,7 +189,7 @@ struct RecentUsageChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline) {
-                Text(model.text("最近 30 天消耗", "Last 30 days"))
+                Text(model.text("最近 7 天消耗", "Last 7 days"))
                     .font(.caption.weight(.semibold))
                 Spacer()
                 Text(formattedTotal)
@@ -197,7 +197,7 @@ struct RecentUsageChart: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
-            if let points = snapshot.recent30DayUsage() {
+            if let points = snapshot.recent7DayUsage() {
                 Chart(points) { point in
                     BarMark(
                         x: .value("Date", point.date, unit: .day),
@@ -221,7 +221,7 @@ struct RecentUsageChart: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 122)
-                .accessibilityLabel(model.text("最近 30 天每日 Token 消耗图", "Daily token usage for the last 30 days"))
+                .accessibilityLabel(model.text("最近 7 天每日 Token 消耗图", "Daily token usage for the last 7 days"))
             } else {
                 Text(model.text("暂无每日消耗数据", "Daily usage is unavailable"))
                     .font(.caption).foregroundStyle(.secondary)

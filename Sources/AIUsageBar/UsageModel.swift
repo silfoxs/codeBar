@@ -51,15 +51,23 @@ struct UsageSnapshot: Identifiable {
     var remainingPercent: Double? { windows.map(\.remainingPercent).min() }
 
     func recent30DayUsage(reference: Date = .now, calendar: Calendar = .current) -> [DailyTokenUsage]? {
+        recentDayUsage(days: 30, reference: reference, calendar: calendar)
+    }
+
+    func recent7DayUsage(reference: Date = .now, calendar: Calendar = .current) -> [DailyTokenUsage]? {
+        recentDayUsage(days: 7, reference: reference, calendar: calendar)
+    }
+
+    private func recentDayUsage(days: Int, reference: Date, calendar: Calendar) -> [DailyTokenUsage]? {
         guard let dailyUsage else { return nil }
         let today = calendar.startOfDay(for: reference)
-        let start = calendar.date(byAdding: .day, value: -29, to: today)!
+        let start = calendar.date(byAdding: .day, value: -(days - 1), to: today)!
         var values: [Date: Int] = [:]
         for usage in dailyUsage {
             let date = calendar.startOfDay(for: usage.date)
             values[date, default: 0] += usage.tokens
         }
-        return (0..<30).compactMap { offset in
+        return (0..<days).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
             return DailyTokenUsage(date: date, tokens: values[date] ?? 0)
         }
