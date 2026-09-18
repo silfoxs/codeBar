@@ -27,9 +27,9 @@ struct UsagePopoverView: View {
                         Text(model.formattedTokenTotal).font(.system(size: 18, weight: .bold, design: .rounded))
                             .lineLimit(1).minimumScaleFactor(0.75)
                     }
-                    .help(model.totalTokens?.formatted() ?? model.text("暂无数据", "Unavailable"))
+                    .help(model.totalTokensIncludingToday?.formatted() ?? model.text("暂无数据", "Unavailable"))
                     .accessibilityLabel(model.text("所有应用总 Token 消耗", "Total tokens across all apps"))
-                    .accessibilityValue(model.totalTokens?.formatted() ?? "—")
+                    .accessibilityValue(model.totalTokensIncludingToday?.formatted() ?? "—")
                 }
                 .padding(.bottom, 12)
                 
@@ -135,25 +135,17 @@ struct UsageSection: View {
             }
             .modifier(UsageBlockHover(id: snapshot.id + "/credits", model: model))
             VStack(alignment: .leading, spacing: 12) {
-            metric(model.text("累计 Token · 官方", "Lifetime · official"), snapshot.totalTokens?.formatted() ?? "—")
+            metric(model.text("累计 Token", "Lifetime tokens"), snapshot.totalTokensIncludingToday?.formatted() ?? "—")
             if let today = snapshot.todayUsage() {
                 metric(today.estimated ? model.text("今日 · 本地估算", "Today · local estimate") : model.text("今日 · 官方", "Today · official"), today.usage.tokens.formatted())
                 if today.estimated {
-                    Text(model.text("仅本机记录，未计入官方累计与 30 天合计", "This device only; excluded from official lifetime and 30-day totals"))
+                    Text(model.text("本地估算已计入界面累计和 30 天合计", "Local estimate included in the displayed totals"))
                         .font(.caption2).foregroundStyle(.secondary)
                 }
             } else {
                 metric(model.text("今日消耗", "Today"), model.text("暂无数据", "Unavailable"))
             }
             RecentUsageChart(snapshot: snapshot, model: model)
-            if let latest = snapshot.dailyUsage?.map(\.date).max() {
-                Text(model.text("服务端日统计截至：", "Daily data through: ") + latest.formatted(.dateTime.month().day()))
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
-            if model.unchangedTokenProviderIDs.contains(snapshot.id) {
-                Text(model.text("已重新获取，服务端消耗量暂无变化", "Fetched again; server token usage is unchanged"))
-                    .font(.caption2).foregroundStyle(.secondary)
-            }
             }
             .modifier(UsageBlockHover(id: snapshot.id + "/tokens", model: model))
             Text(model.text("读取于：", "Fetched: ") + model.date(snapshot.fetchedAt)).font(.caption2).foregroundStyle(.secondary)
@@ -241,8 +233,8 @@ struct RecentUsageChart: View {
     }
 
     private var formattedTotal: String {
-        guard let total = snapshot.recent30DayTotal() else { return "—" }
-        return model.text("30 天官方 \(total.formatted())", "30d official \(total.formatted())")
+        guard let total = snapshot.recent30DayTotalIncludingToday() else { return "—" }
+        return model.text("30 天合计 \(total.formatted())", "30d total \(total.formatted())")
     }
 
     private func shortTokens(_ value: Int) -> String {

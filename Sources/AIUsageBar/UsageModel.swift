@@ -93,6 +93,18 @@ struct UsageSnapshot: Identifiable {
     func recent30DayTotal(reference: Date = .now, calendar: Calendar = .current) -> Int? {
         recent30DayUsage(reference: reference, calendar: calendar)?.reduce(0) { $0 + $1.tokens }
     }
+
+    func recent30DayTotalIncludingToday(reference: Date = .now, calendar: Calendar = .current) -> Int? {
+        guard let total = recent30DayTotal(reference: reference, calendar: calendar) else { return nil }
+        guard let today = todayUsage(reference: reference, calendar: calendar), today.estimated else { return total }
+        return total + today.usage.tokens
+    }
+
+    var totalTokensIncludingToday: Int? {
+        guard let totalTokens else { return nil }
+        guard let today = todayUsage(), today.estimated else { return totalTokens }
+        return totalTokens + today.usage.tokens
+    }
 }
 
 struct DailyTokenUsage: Identifiable, Hashable {
@@ -137,10 +149,11 @@ final class UsageModel: ObservableObject {
     var primaryUsage: UsageSnapshot? { visibleSnapshots.first }
     // An incomplete aggregate is unknown, not zero or an apparently complete total.
     var totalTokens: Int? {
-        let values = snapshots.compactMap(\.totalTokens)
+        let values = snapshots.compactMap(\.totalTokensIncludingToday)
         guard values.count == providers.count else { return nil }
         return values.reduce(0, +)
     }
+    var totalTokensIncludingToday: Int? { totalTokens }
     var formattedTokenTotal: String {
         guard let totalTokens else { return "—" }
         if totalTokens >= 1_000_000_000 { return String(format: "%.2fB", Double(totalTokens) / 1_000_000_000) }
