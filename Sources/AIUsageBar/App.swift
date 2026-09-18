@@ -13,10 +13,10 @@ struct AIUsageBarApp {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model = UsageModel()
     private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    private var usagePanel: UsagePanel?
     private var settingsWindow: NSWindow?
     private var outsideClickMonitor: Any?
     private var localClickMonitor: Any?
@@ -31,16 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         statusItem.button?.action = #selector(togglePopover)
         statusItem.button?.target = self
 
-        popover = NSPopover()
-        popover.behavior = .transient
-        popover.delegate = self
-        popover.animates = true
         let controller = NSHostingController(rootView: UsagePopoverView(model: model, openSettings: openSettings))
         controller.sizingOptions = []
-        popover.contentViewController = controller
         controller.view.wantsLayer = true
         controller.view.layer?.backgroundColor = NSColor.clear.cgColor
-        popover.contentSize = NSSize(width: PopoverLayout.width, height: PopoverLayout.height)
+        let panel = UsagePanel(contentRect: NSRect(origin: .zero,
+                                                    size: NSSize(width: PopoverLayout.width, height: PopoverLayout.height)),
+                               contentViewController: controller)
+        panel.delegate = self
+        usagePanel = panel
         model.onChange = { [weak self] in self?.updateStatusItem() }
         model.onRefreshIntervalChange = { [weak self] in self?.scheduleRefreshTimer() }
         updateStatusItem()
@@ -50,36 +49,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     @objc private func togglePopover() {
         guard let button = statusItem.button else { return }
-        if popover.isShown { popover.performClose(nil) }
+        if usagePanel?.isVisible == true { closeUsagePanel() }
         else {
             // Activating an accessory app can restore its last key window.
             // Settings belongs only to the explicit settings button.
             settingsWindow?.orderOut(nil)
             NSApp.activate(ignoringOtherApps: true)
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
+            showUsagePanel(relativeTo: button)
             installClickMonitors()
             model.refreshIfNeeded()
         }
     }
 
-    func applicationDidResignActive(_ notification: Notification) { popover?.performClose(nil) }
+    func applicationDidResignActive(_ notification: Notification) { closeUsagePanel() }
 
     private func installClickMonitors() {
         removeClickMonitors()
         outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] _ in
-            self?.popover?.performClose(nil)
+            self?.closeUsagePanel()
         }
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown]) { [weak self] event in
-            guard let self, self.popover.isShown else { return event }
+            guard let self, self.usagePanel?.isVisible == true else { return event }
             if event.type == .keyDown {
-                if event.keyCode == 53 { self.popover.performClose(nil); return nil }
-            } else if event.window !== self.popover.contentViewController?.view.window,
+                if event.keyCode == 53 { self.closeUsagePanel(); return nil }
+            } else if event.window !== self.usagePanel,
                       event.window !== self.statusItem.button?.window {
-                self.popover.performClose(nil)
+                self.closeUsagePanel()
             }
             return event
         }
+    }
+
+    private func closeUsagePanel() {
+        removeClickMonitors()
+        if usagePanel?.isVisible == true { usagePanel?.orderOut(nil) }
+        model.hoveredBlockID = nil
     }
 
     private func removeClickMonitors() {
@@ -89,7 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         localClickMonitor = nil
     }
 
-    func popoverDidClose(_ notification: Notification) { removeClickMonitors() }
+    func windowDidResignKey(_ notification: Notification) {
+        if notification.object as AnyObject? === usagePanel { closeUsagePanel() }
+    }
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
         removeClickMonitors()
@@ -114,7 +120,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     private func openSettings() {
         AppLog.ui.debug("opening settings")
-        popover.performClose(nil)
+        closeUsagePanel()
         if settingsWindow == nil {
             let view = SettingsView(model: model)
             let controller = NSHostingController(rootView: view)
@@ -130,5 +136,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.title = model.text("设置", "Settings")
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func showUsagePanel(relativeTo button: NSStatusBarButton) {
+        guard let panel = usagePanel,
+              let buttonWindow = button.window,
+              let screen = buttonWindow.screen else { return }
+        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        let size = NSSize(width: PopoverLayout.width, height: PopoverLayout.height)
+        let visible = screen.visibleFrame
+        let x = min(max(buttonRect.midX - size.width / 2, visible.minX + 8), visible.maxX - size.width - 8)
+        let below = buttonRect.minY - size.height - 8
+        let y = max(visible.minY + 8, min(below, visible.maxY - size.height - 8))
+        panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
+        panel.makeKeyAndOrderFront(nil)
+    }
+}
+
+private final class UsagePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+
+    init(contentRect: NSRect, contentViewController: NSViewController) {
+        super.init(contentRect: contentRect, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        self.contentViewController = contentViewController
+        isFloatingPanel = true
+        level = .popUpMenu
+        collectionBehavior = [.transient, .moveToActiveSpace]
+        backgroundColor = .clear
+        isOpaque = false
+        hasShadow = true
+        hidesOnDeactivate = true
+        isReleasedWhenClosed = false
     }
 }
