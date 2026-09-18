@@ -114,4 +114,4 @@ codex login
 
 ## 界面材质
 
-macOS 26+ 使用不带 tint 的原生 `glassEffect(.regular)` ；按钮采用简洁的无边框样式；macOS 13–25 回退到系统 material。面板本身保持透明，避免出现额外灰色底板；设置页使用系统 Liquid Glass 材质。图表和额度圆环使用蓝色、靛青、青色、橙色、红色等语义明确的颜色，异常提示保留语义色。
+macOS 26+ 使用不带 tint 的原生 `glassEffect(.regular)` ；按钮采用简洁的无边框样式；macOS 13–25 回退到系统 material。面板本身保持透明，避免出现额外灰色底板；设置页使用系统 Liquid Glass 材质。额度窗口使用进度条，30 天图表使用蓝色和靛青色，异常提示保留语义色。

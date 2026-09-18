@@ -115,21 +115,6 @@ struct UsageSection: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle().strokeBorder(.primary.opacity(0.12), lineWidth: 7)
-                    Circle().inset(by: 3.5).trim(from: 0, to: (snapshot.remainingPercent ?? 0) / 100)
-                        .stroke(quotaColor, style: StrokeStyle(lineWidth: 7, lineCap: .round)).rotationEffect(.degrees(-90))
-                    Text(snapshot.remainingPercent.map { String(format: "%.0f%%", $0) } ?? "—")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                }
-                .frame(width: 60, height: 60)
-                .padding(.leading, 6)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(model.text("额度剩余", "Quota remaining")).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-            }
             ForEach(Array(snapshot.windows.enumerated()), id: \.offset) { index, window in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
