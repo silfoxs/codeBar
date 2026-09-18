@@ -135,7 +135,16 @@ struct UsageSection: View {
             }
             .modifier(UsageBlockHover(id: snapshot.id + "/credits", model: model))
             VStack(alignment: .leading, spacing: 12) {
-            metric(model.text("累计 Token", "Lifetime tokens"), snapshot.totalTokens?.formatted() ?? "—")
+            metric(model.text("累计 Token · 官方", "Lifetime · official"), snapshot.totalTokens?.formatted() ?? "—")
+            if let today = snapshot.todayUsage() {
+                metric(today.estimated ? model.text("今日 · 本地估算", "Today · local estimate") : model.text("今日 · 官方", "Today · official"), today.usage.tokens.formatted())
+                if today.estimated {
+                    Text(model.text("仅本机记录，未计入官方累计与 30 天合计", "This device only; excluded from official lifetime and 30-day totals"))
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            } else {
+                metric(model.text("今日消耗", "Today"), model.text("暂无数据", "Unavailable"))
+            }
             RecentUsageChart(snapshot: snapshot, model: model)
             if let latest = snapshot.dailyUsage?.map(\.date).max() {
                 Text(model.text("服务端日统计截至：", "Daily data through: ") + latest.formatted(.dateTime.month().day()))
@@ -203,7 +212,7 @@ struct RecentUsageChart: View {
                         x: .value("Date", point.date, unit: .day),
                         y: .value("Tokens", point.tokens)
                     )
-                    .foregroundStyle(point.tokens == points.map(\.tokens).max() ? Color.indigo : Color.blue)
+                    .foregroundStyle(snapshot.todayUsage()?.estimated == true && Calendar.current.isDateInToday(point.date) ? Color.orange : Color.blue)
                     .cornerRadius(2)
                 }
                 .chartLegend(.hidden)
@@ -214,7 +223,7 @@ struct RecentUsageChart: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day, count: 7)) { value in
+                    AxisMarks(values: .stride(by: .day, count: 1)) { value in
                         AxisTick()
                         AxisValueLabel(format: .dateTime.month(.twoDigits).day(.twoDigits))
                     }
@@ -233,7 +242,7 @@ struct RecentUsageChart: View {
 
     private var formattedTotal: String {
         guard let total = snapshot.recent30DayTotal() else { return "—" }
-        return model.text("合计 \(total.formatted())", "Total \(total.formatted())")
+        return model.text("30 天官方 \(total.formatted())", "30d official \(total.formatted())")
     }
 
     private func shortTokens(_ value: Int) -> String {

@@ -45,6 +45,7 @@ struct UsageSnapshot: Identifiable {
     let resetCardCount: Int?
     let totalTokens: Int?
     let dailyUsage: [DailyTokenUsage]?
+    let localTodayUsage: DailyTokenUsage?
     let spendControlReached: Bool
     let fetchedAt: Date
     let failures: [UsageFailure]
@@ -55,7 +56,23 @@ struct UsageSnapshot: Identifiable {
     }
 
     func recent7DayUsage(reference: Date = .now, calendar: Calendar = .current) -> [DailyTokenUsage]? {
-        recentDayUsage(days: 7, reference: reference, calendar: calendar)
+        var points = recentDayUsage(days: 7, reference: reference, calendar: calendar)
+        if let today = todayUsage(reference: reference, calendar: calendar), today.estimated {
+            if points == nil { points = [] }
+            points?.removeAll { calendar.isDate($0.date, inSameDayAs: reference) }
+            points?.append(today.usage)
+        }
+        return points
+    }
+
+    func todayUsage(reference: Date = .now, calendar: Calendar = .current) -> (usage: DailyTokenUsage, estimated: Bool)? {
+        if let official = dailyUsage?.filter({ calendar.isDate($0.date, inSameDayAs: reference) }), !official.isEmpty {
+            return (DailyTokenUsage(date: calendar.startOfDay(for: reference), tokens: official.reduce(0) { $0 + $1.tokens }), false)
+        }
+        if let localTodayUsage, calendar.isDate(localTodayUsage.date, inSameDayAs: reference) {
+            return (localTodayUsage, true)
+        }
+        return nil
     }
 
     private func recentDayUsage(days: Int, reference: Date, calendar: Calendar) -> [DailyTokenUsage]? {

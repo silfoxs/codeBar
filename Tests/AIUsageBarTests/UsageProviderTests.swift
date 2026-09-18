@@ -22,6 +22,7 @@ final class UsageProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.remainingPercent, 55)
         XCTAssertEqual(snapshot.windows.count, 2)
         XCTAssertEqual(snapshot.totalTokens, 1900000001) // Do not sum daily buckets on top of lifetime.
+        XCTAssertNil(snapshot.localTodayUsage)
         XCTAssertEqual(snapshot.resetCardCount, 2)
         XCTAssertEqual(snapshot.resetCardExpiry?.timeIntervalSince1970, 2000000000)
         XCTAssertTrue(snapshot.spendControlReached)
@@ -73,5 +74,18 @@ final class UsageProviderTests: XCTestCase {
         """.utf8))
         let snapshot = CodexUsageProvider.snapshot(limits: nil, tokens: tokens, now: ISO8601DateFormatter().date(from: "2026-09-18T00:00:00Z")!)
         XCTAssertEqual(snapshot.recent30DayTotal(reference: ISO8601DateFormatter().date(from: "2026-09-18T00:00:00Z")!), 350)
+    }
+
+    func testLocalTodayEstimateDoesNotChangeOfficialTotals() throws {
+        let tokens = try JSONDecoder().decode(CodexTokenUsage.self, from: Data("""
+        {"summary":{"lifetimeTokens":999999},"dailyUsageBuckets":[{"startDate":"2026-09-17","tokens":250}]}
+        """.utf8))
+        let now = ISO8601DateFormatter().date(from: "2026-09-18T00:00:00Z")!
+        let snapshot = CodexUsageProvider.snapshot(limits: nil, tokens: tokens, now: now, localTodayTokens: 400)
+        XCTAssertEqual(snapshot.todayUsage(reference: now)?.usage.tokens, 400)
+        XCTAssertEqual(snapshot.todayUsage(reference: now)?.estimated, true)
+        XCTAssertEqual(snapshot.recent30DayTotal(reference: now), 250)
+        XCTAssertEqual(snapshot.recent7DayUsage(reference: now)?.last?.tokens, 400)
+        XCTAssertEqual(snapshot.totalTokens, 999999)
     }
 }
