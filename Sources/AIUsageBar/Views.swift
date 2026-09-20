@@ -284,15 +284,39 @@ struct SettingsView: View {
 
                 HStack {
                     Spacer()
-                    Button(action: model.refresh) {
-                        Label(model.text("立即刷新", "Refresh now"), systemImage: "arrow.clockwise")
-                    }.buttonStyle(.borderless).disabled(model.isRefreshing)
+                    GlassActionButton(title: model.text("立即刷新", "Refresh now"),
+                                      systemImage: "arrow.clockwise",
+                                      action: model.refresh)
+                        .disabled(model.isRefreshing)
                 }
             }
             .frame(width: 500, alignment: .leading)
             .padding(26)
         }
         .frame(width: 560, height: 430)
+    }
+}
+
+private struct GlassActionButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+        }
+        .modifier(GlassActionButtonStyle())
+    }
+}
+
+private struct GlassActionButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonStyle(.glass)
+        } else {
+            content.buttonStyle(.bordered)
+        }
     }
 }
 
