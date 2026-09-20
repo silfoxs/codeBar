@@ -18,7 +18,7 @@ struct UsagePopoverView: View {
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("AI Usage").font(.system(size: 22, weight: .bold, design: .rounded))
+                        Text(model.text("AI 用量", "AI Usage")).font(.system(size: 22, weight: .bold, design: .rounded))
                         Text(model.text("账户用量", "Account usage")).foregroundStyle(.secondary).font(.subheadline)
                     }
                     Spacer()
@@ -192,8 +192,8 @@ struct RecentUsageChart: View {
             if let points = snapshot.recent7DayUsage() {
                 Chart(points) { point in
                     BarMark(
-                        x: .value("Date", point.date, unit: .day),
-                        y: .value("Tokens", point.tokens)
+                        x: .value(model.text("日期", "Date"), point.date, unit: .day),
+                        y: .value(model.text("Token", "Tokens"), point.tokens)
                     )
                     .foregroundStyle(snapshot.todayUsage()?.estimated == true && Calendar.current.isDateInToday(point.date) ? Color.orange : Color.blue)
                     .cornerRadius(2)
