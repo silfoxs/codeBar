@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "AIUsageBar",
+    name: "codeBar",
     platforms: [.macOS(.v13)],
-    products: [.executable(name: "AIUsageBar", targets: ["AIUsageBar"])],
+    products: [.executable(name: "codeBar", targets: ["codeBar"])],
     targets: [
-        .executableTarget(name: "AIUsageBar"),
-        .testTarget(name: "AIUsageBarTests", dependencies: ["AIUsageBar"])
+        .executableTarget(name: "codeBar", resources: [.process("Resources")]),
+        .testTarget(name: "codeBarTests", dependencies: ["codeBar"])
     ]
 )

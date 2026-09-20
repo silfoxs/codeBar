@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import Charts
 
@@ -237,6 +238,7 @@ struct RecentUsageChart: View {
 
 struct SettingsView: View {
     @ObservedObject var model: UsageModel
+    @ObservedObject var updateManager: UpdateManager
     var body: some View {
         ZStack {
             GlassSurface(cornerRadius: 0).ignoresSafeArea()
@@ -282,7 +284,40 @@ struct SettingsView: View {
                     }
                 }
 
+                GlassSettingsGroup {
+                    HStack(spacing: 14) {
+                        if let appLogo {
+                            Image(nsImage: appLogo)
+                                .resizable()
+                                .interpolation(.high)
+                                .scaledToFit()
+                                .frame(width: 64, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(model.text("关于 codeBar", "About codeBar"))
+                                .font(.headline)
+                            Text("codeBar")
+                                .font(.system(.body, design: .rounded).weight(.semibold))
+                            Text(model.text("版本 \(appVersion)", "Version \(appVersion)"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                }
+
+                updateSection
+
                 HStack {
+                    Button {
+                        NSApp.terminate(nil)
+                    } label: {
+                        Label(model.text("退出", "Quit"), systemImage: "power")
+                    }
+                    .modifier(GlassActionButtonStyle())
+                    .tint(.red)
+                    .accessibilityLabel(model.text("退出", "Quit"))
                     Spacer()
                     GlassActionButton(title: model.text("立即刷新", "Refresh now"),
                                       systemImage: "arrow.clockwise",
@@ -293,7 +328,72 @@ struct SettingsView: View {
             .frame(width: 500, alignment: .leading)
             .padding(26)
         }
-        .frame(width: 560, height: 430)
+        .frame(width: 560, height: 620)
+    }
+
+    private var updateSection: some View {
+        GlassSettingsGroup {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label(model.text("软件更新", "Software Update"), systemImage: "arrow.triangle.2.circlepath")
+                        .font(.headline)
+                    Spacer()
+                    Text("v\(updateManager.currentVersion)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+
+                if updateManager.phase == .downloading {
+                    ProgressView(value: updateManager.downloadProgress)
+                    Text(model.text("下载进度 \(Int((updateManager.downloadProgress * 100).rounded()))%", "Downloading \(Int((updateManager.downloadProgress * 100).rounded()))%"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if updateManager.phase == .installing {
+                    ProgressView(updateManager.statusMessage ?? model.text("正在安装…", "Installing…"))
+                        .font(.caption)
+                } else if let statusMessage = updateManager.statusMessage {
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(updateManager.phase == .failed ? .red : .secondary)
+                }
+
+                HStack {
+                    Spacer()
+                    if let release = updateManager.pendingRelease {
+                        Button(model.text("立即更新", "Update now")) {
+                            updateManager.downloadAndInstall(release)
+                        }
+                        .modifier(GlassActionButtonStyle())
+                    }
+                    Button {
+                        Task { await updateManager.checkForUpdates() }
+                    } label: {
+                        if updateManager.phase == .checking {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Label(model.text("检查更新", "Check for Updates"), systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .modifier(GlassActionButtonStyle())
+                    .disabled(updateManager.isBusy)
+                }
+            }
+        }
+    }
+
+    private var appVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            ?? "0.1.0"
+    }
+
+    private var appLogo: NSImage? {
+        if let url = Bundle.main.url(forResource: "codeBar-logo", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
+        if let url = Bundle.module.url(forResource: "codeBar-logo", withExtension: "png") {
+            return NSImage(contentsOf: url)
+        }
+        return nil
     }
 }
 

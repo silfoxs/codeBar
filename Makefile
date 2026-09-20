@@ -1,4 +1,5 @@
-APP_NAME := AIUsageBar
+APP_NAME := codeBar
+APP_EXECUTABLE := codeBar
 APP_BUNDLE := $(APP_NAME).app
 DIST_DIR := dist
 
@@ -11,7 +12,7 @@ test:
 	swift test
 
 run:
-	swift run $(APP_NAME)
+	swift run $(APP_EXECUTABLE)
 
 dev:
 	./scripts/dev.sh

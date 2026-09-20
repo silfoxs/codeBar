@@ -1,28 +1,116 @@
-name: macOS build
+name: Build Release
 
 on:
   push:
-  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: main-release
+  cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: macos-14
+  build-release:
+    runs-on: macos-26
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+      - name: Check out repository
+        uses: actions/checkout@v4
         with:
-          xcode-version: latest-stable
+          fetch-depth: 0
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve app version
+        id: resolve-version
+        env:
+          APP_VERSION_OVERRIDE: ${{ vars.APP_VERSION }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${APP_VERSION_OVERRIDE:-}" ]]; then
+            APP_VERSION="$APP_VERSION_OVERRIDE"
+          elif TAG_NAME="$(git describe --tags --match 'codeBar-v[0-9]*' --abbrev=0 2>/dev/null)"; then
+            APP_VERSION="${TAG_NAME#codeBar-v}"
+          else
+            APP_VERSION="0.1.0"
+          fi
+
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using codeBar version $APP_VERSION"
+
       - name: Build
         run: swift build -c release
+
       - name: Test
         run: swift test
-      - name: Package unsigned app
-        run: ./scripts/package-app.sh
+
+      - name: Build app bundle and installers
         env:
           CODESIGN_IDENTITY: '-'
+        run: |
+          set -euo pipefail
+          make package
+          make dmg
+
       - name: Verify app bundle
         run: |
-          test -x dist/AIUsageBar.app/Contents/MacOS/AIUsageBar
-          plutil -p dist/AIUsageBar.app/Contents/Info.plist
-          codesign --verify --deep --strict dist/AIUsageBar.app
+          set -euo pipefail
+          test -x dist/codeBar.app/Contents/MacOS/codeBar
+          plutil -p dist/codeBar.app/Contents/Info.plist
+          codesign --verify --deep --strict dist/codeBar.app
+          test -f "dist/codeBar-${APP_VERSION}.zip"
+          test -f "dist/codeBar-${APP_VERSION}.dmg"
+
+      - name: Create or update draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: codeBar-v${{ steps.resolve-version.outputs.app_version }}
+          RELEASE_TITLE: codeBar-v${{ steps.resolve-version.outputs.app_version }}
+          ZIP_PATH: dist/codeBar-${{ steps.resolve-version.outputs.app_version }}.zip
+          DMG_PATH: dist/codeBar-${{ steps.resolve-version.outputs.app_version }}.dmg
+        run: |
+          set -euo pipefail
+
+          RELEASE_EXISTS=0
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            RELEASE_EXISTS=1
+            IS_DRAFT="$(gh release view "$TAG_NAME" --json isDraft --jq '.isDraft')"
+            if [[ "$IS_DRAFT" != "true" ]]; then
+              echo "Release $TAG_NAME is already published. Bump APP_VERSION before creating a new draft." >&2
+              exit 1
+            fi
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG_NAME" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG_NAME" --force
+
+          SHORT_SHA="${GITHUB_SHA::7}"
+          NOTES="Draft build from main commit ${SHORT_SHA}: $(basename "$DMG_PATH") and $(basename "$ZIP_PATH")."
+
+          if [[ "$RELEASE_EXISTS" -eq 1 ]]; then
+            gh release edit "$TAG_NAME" --title "$RELEASE_TITLE" --notes "$NOTES"
+            while IFS= read -r asset_name; do
+              case "$asset_name" in
+                codeBar-*.zip|codeBar-*.dmg)
+                  gh release delete-asset "$TAG_NAME" "$asset_name" --yes
+                  ;;
+              esac
+            done < <(gh release view "$TAG_NAME" --json assets --jq '.assets[].name')
+            gh release upload "$TAG_NAME" "$ZIP_PATH" "$DMG_PATH" --clobber
+          else
+            gh release create "$TAG_NAME" "$ZIP_PATH" "$DMG_PATH" \
+              --title "$RELEASE_TITLE" \
+              --notes "$NOTES" \
+              --draft
+          fi

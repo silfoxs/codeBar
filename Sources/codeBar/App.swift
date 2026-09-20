@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 @main
-struct AIUsageBarApp {
+struct CodeBarApp {
     @MainActor
     static func main() {
         let application = NSApplication.shared
@@ -15,6 +15,7 @@ struct AIUsageBarApp {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let model = UsageModel()
+    let updateManager = UpdateManager()
     private var statusItem: NSStatusItem!
     private var usagePanel: UsagePanel?
     private var settingsWindow: NSWindow?
@@ -119,12 +120,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         AppLog.ui.debug("opening settings")
         closeUsagePanel()
         if settingsWindow == nil {
-            let view = SettingsView(model: model)
+            let view = SettingsView(model: model, updateManager: updateManager)
             let controller = NSHostingController(rootView: view)
             let window = NSWindow(contentViewController: controller)
             window.title = model.text("设置", "Settings")
             window.styleMask = [.titled, .closable, .miniaturizable]
-            window.setContentSize(NSSize(width: 560, height: 430))
+            window.setContentSize(NSSize(width: 560, height: 620))
             window.center()
             window.isReleasedWhenClosed = false
             window.isRestorable = false

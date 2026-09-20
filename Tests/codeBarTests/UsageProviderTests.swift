@@ -1,5 +1,5 @@
 import XCTest
-@testable import AIUsageBar
+@testable import codeBar
 
 final class UsageProviderTests: XCTestCase {
     private func limits(_ json: String) throws -> CodexRateLimits {
