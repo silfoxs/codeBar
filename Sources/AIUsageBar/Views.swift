@@ -14,7 +14,7 @@ struct UsagePopoverView: View {
     let openSettings: () -> Void
     var body: some View {
         ZStack {
-            GlassSurface(cornerRadius: 18, clearGlass: true).ignoresSafeArea()
+            GlassSurface(cornerRadius: 18).ignoresSafeArea()
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
