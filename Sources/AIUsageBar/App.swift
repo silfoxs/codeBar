@@ -93,9 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         localClickMonitor = nil
     }
 
-    func windowDidResignKey(_ notification: Notification) {
-        if notification.object as AnyObject? === usagePanel { closeUsagePanel() }
-    }
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
         removeClickMonitors()
@@ -149,7 +146,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let below = buttonRect.minY - size.height - 8
         let y = max(visible.minY + 8, min(below, visible.maxY - size.height - 8))
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: false)
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        panel.makeKey()
     }
 }
 
@@ -166,7 +164,8 @@ private final class UsagePanel: NSPanel {
         backgroundColor = .clear
         isOpaque = false
         hasShadow = true
-        hidesOnDeactivate = true
+        hidesOnDeactivate = false
+        becomesKeyOnlyIfNeeded = false
         isReleasedWhenClosed = false
     }
 }
