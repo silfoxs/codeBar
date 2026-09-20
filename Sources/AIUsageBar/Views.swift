@@ -240,26 +240,69 @@ struct SettingsView: View {
     var body: some View {
         ZStack {
             GlassSurface(cornerRadius: 0).ignoresSafeArea()
-            Form {
-                Section { Picker(model.text("语言", "Language"), selection: $model.language) { ForEach(AppLanguage.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented) }
-                Section(model.text("状态栏展示", "Status bar display")) {
-                    ForEach(model.providers, id: \.id) { provider in
-                        Toggle(isOn: Binding(get: { model.selectedProviderIDs.contains(provider.id) }, set: { _ in model.toggle(provider.id) })) {
-                            Label(provider.displayName, systemImage: provider.id == "codex" ? "sparkles" : "square.grid.2x2")
-                        }
-                    }
-                    Text(model.text("可多选，后续可扩展更多 AI 应用。", "Select multiple apps; more providers can be added later.")).font(.caption).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.text("设置", "Settings")).font(.system(size: 25, weight: .bold, design: .rounded))
+                    Text(model.text("自定义状态栏用量显示", "Customize your status bar usage display"))
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
-                Section(model.text("刷新频率", "Refresh interval")) {
-                    Picker(model.text("自动刷新", "Automatic refresh"), selection: $model.refreshInterval) {
-                        ForEach(RefreshInterval.allCases) { interval in
-                            Text(model.language == .chinese ? interval.chineseLabel : interval.englishLabel)
-                                .tag(interval)
-                        }
+
+                GlassSettingsGroup {
+                    HStack {
+                        Label(model.text("语言", "Language"), systemImage: "character.book.closed")
+                        Spacer()
+                        Picker("", selection: $model.language) {
+                            ForEach(AppLanguage.allCases) { Text($0.rawValue).tag($0) }
+                        }.pickerStyle(.segmented).frame(width: 190)
                     }
                 }
-                Section { Button(model.text("立即刷新", "Refresh now"), action: model.refresh).buttonStyle(.borderless) }.disabled(model.isRefreshing)
-            }.formStyle(.grouped).scrollContentBackground(.hidden).frame(width: 540, height: 400)
+
+                GlassSettingsGroup {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(model.text("状态栏展示", "Status bar display")).font(.headline)
+                        ForEach(model.providers, id: \.id) { provider in
+                            Toggle(isOn: Binding(get: { model.selectedProviderIDs.contains(provider.id) }, set: { _ in model.toggle(provider.id) })) {
+                                Label(provider.displayName, systemImage: provider.id == "codex" ? "sparkles" : "square.grid.2x2")
+                            }.toggleStyle(.switch)
+                        }
+                        Text(model.text("可多选，后续可扩展更多 AI 应用。", "Select multiple apps; more providers can be added later."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+
+                GlassSettingsGroup {
+                    HStack {
+                        Label(model.text("刷新频率", "Refresh interval"), systemImage: "arrow.clockwise")
+                        Spacer()
+                        Picker("", selection: $model.refreshInterval) {
+                            ForEach(RefreshInterval.allCases) { interval in
+                                Text(model.language == .chinese ? interval.chineseLabel : interval.englishLabel).tag(interval)
+                            }
+                        }.labelsHidden().frame(width: 210)
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button(action: model.refresh) {
+                        Label(model.text("立即刷新", "Refresh now"), systemImage: "arrow.clockwise")
+                    }.buttonStyle(.borderless).disabled(model.isRefreshing)
+                }
+            }
+            .frame(width: 500, alignment: .leading)
+            .padding(26)
         }
+        .frame(width: 560, height: 430)
+    }
+}
+
+private struct GlassSettingsGroup<Content: View>: View {
+    @ViewBuilder let content: Content
+    var body: some View {
+        content
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(GlassSurface(cornerRadius: 16))
     }
 }
