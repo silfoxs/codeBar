@@ -164,7 +164,7 @@ private final class UsagePanel: NSPanel {
         collectionBehavior = [.transient, .moveToActiveSpace]
         backgroundColor = .clear
         isOpaque = false
-        hasShadow = true
+        hasShadow = false
         hidesOnDeactivate = false
         becomesKeyOnlyIfNeeded = false
         isReleasedWhenClosed = false

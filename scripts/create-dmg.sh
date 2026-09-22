@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-APP_VERSION="${APP_VERSION:-0.1.0}"
+APP_VERSION="${APP_VERSION:-0.1.1}"
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
 APP_NAME="codeBar"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"

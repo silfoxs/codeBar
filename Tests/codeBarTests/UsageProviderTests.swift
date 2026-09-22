@@ -87,5 +87,17 @@ final class UsageProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.recent30DayTotal(reference: now), 250)
         XCTAssertEqual(snapshot.recent7DayUsage(reference: now)?.last?.tokens, 400)
         XCTAssertEqual(snapshot.totalTokens, 999999)
+        XCTAssertEqual(snapshot.totalTokensIncludingToday, 1000399)
+    }
+
+    func testOfficialTodayBucketIsIncludedOnlyOnce() throws {
+        let tokens = try JSONDecoder().decode(CodexTokenUsage.self, from: Data("""
+        {"summary":{"lifetimeTokens":999999},"dailyUsageBuckets":[{"startDate":"2026-09-18","tokens":400}]}
+        """.utf8))
+        let now = ISO8601DateFormatter().date(from: "2026-09-18T00:00:00Z")!
+        let snapshot = CodexUsageProvider.snapshot(limits: nil, tokens: tokens, now: now, localTodayTokens: 400)
+        XCTAssertEqual(snapshot.todayUsage(reference: now)?.usage.tokens, 400)
+        XCTAssertEqual(snapshot.todayUsage(reference: now)?.estimated, false)
+        XCTAssertEqual(snapshot.totalTokensIncludingToday, 999999)
     }
 }

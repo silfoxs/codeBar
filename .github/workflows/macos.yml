@@ -40,7 +40,7 @@ jobs:
           elif TAG_NAME="$(git describe --tags --match 'codeBar-v[0-9]*' --abbrev=0 2>/dev/null)"; then
             APP_VERSION="${TAG_NAME#codeBar-v}"
           else
-            APP_VERSION="0.1.0"
+            APP_VERSION="0.1.1"
           fi
 
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"

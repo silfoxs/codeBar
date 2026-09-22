@@ -20,10 +20,11 @@ struct CodexUsageProvider: UsageProvider {
             } catch { failures.append(error as? UsageFailure ?? .invalidResponse) }
             guard limits != nil || tokens != nil else { throw failures.first ?? .accountUnavailable }
             let now = Date.now
-            let hasToday = tokens?.dailyUsageBuckets?.contains {
-                $0.usage.map { Calendar.current.isDate($0.date, inSameDayAs: now) } ?? false
+            let hasOfficialToday = tokens?.dailyUsageBuckets?.contains {
+                guard let usage = $0.usage else { return false }
+                return Calendar.current.isDate(usage.date, inSameDayAs: now)
             } == true
-            let localToday = hasToday ? nil : (try? localReader.todayTokens(reference: now))
+            let localToday = hasOfficialToday ? nil : (try? localReader.todayTokens(reference: now))
             return Self.snapshot(limits: limits, tokens: tokens, failures: failures,
                                  now: now, localTodayTokens: localToday)
         }.value

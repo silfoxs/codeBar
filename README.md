@@ -88,7 +88,7 @@ make package
 
 ```text
 dist/codeBar.app
-dist/codeBar-0.1.0.zip
+dist/codeBar-0.1.1.zip
 ```
 
 生成带 Finder 拖放安装界面的 DMG：

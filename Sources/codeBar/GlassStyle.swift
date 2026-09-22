@@ -10,7 +10,9 @@ struct GlassSurface: View {
         if reduceTransparency {
             shape.fill(Color(nsColor: .windowBackgroundColor))
         } else if #available(macOS 26.0, *) {
-            Color.clear.glassEffect(.regular, in: shape)
+            Color.clear
+                .glassEffect(.regular, in: shape)
+                .clipShape(shape)
         } else {
             shape.fill(.regularMaterial)
         }
