@@ -87,7 +87,7 @@ final class UsageProviderTests: XCTestCase {
         XCTAssertEqual(snapshot.recent30DayTotal(reference: now), 250)
         XCTAssertEqual(snapshot.recent7DayUsage(reference: now)?.last?.tokens, 400)
         XCTAssertEqual(snapshot.totalTokens, 999999)
-        XCTAssertEqual(snapshot.totalTokensIncludingToday, 1000399)
+        XCTAssertEqual(snapshot.totalTokensIncludingToday(reference: now), 1000399)
     }
 
     func testOfficialTodayBucketIsIncludedOnlyOnce() throws {

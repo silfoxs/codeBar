@@ -100,11 +100,13 @@ struct UsageSnapshot: Identifiable {
         return total + today.usage.tokens
     }
 
-    var totalTokensIncludingToday: Int? {
+    func totalTokensIncludingToday(reference: Date = .now, calendar: Calendar = .current) -> Int? {
         guard let totalTokens else { return nil }
-        guard let today = todayUsage(), today.estimated else { return totalTokens }
+        guard let today = todayUsage(reference: reference, calendar: calendar), today.estimated else { return totalTokens }
         return totalTokens + today.usage.tokens
     }
+
+    var totalTokensIncludingToday: Int? { totalTokensIncludingToday() }
 }
 
 struct DailyTokenUsage: Identifiable, Hashable {
