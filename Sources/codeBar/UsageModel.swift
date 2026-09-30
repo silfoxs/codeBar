@@ -179,20 +179,29 @@ final class UsageModel: ObservableObject {
         isRefreshing = true
         lastAttempt = .now
         Task {
+            // Build the next state off to the side. Published data stays visible
+            // until every provider has produced its next result.
             var values = snapshots
             var errors: [String: UsageFailure] = [:]
             var unchanged: Set<String> = []
             for provider in providers {
                 do {
                     let snapshot = try await provider.fetchUsage()
-                    if let previous = values.first(where: { $0.id == provider.id }),
-                       snapshot.totalTokens != nil, snapshot.totalTokens == previous.totalTokens,
-                       snapshot.dailyUsage == previous.dailyUsage, snapshot.failures.isEmpty {
-                        unchanged.insert(provider.id)
+                    let previous = values.first { $0.providerID == provider.id }
+                    if let failure = snapshot.failures.first, previous != nil {
+                        // A partial response must not replace a complete previous reading.
+                        errors[provider.id] = failure
+                        AppLog.usage.error("provider refresh incomplete: \(provider.id, privacy: .public)")
+                    } else {
+                        if let previous,
+                           snapshot.totalTokens != nil, snapshot.totalTokens == previous.totalTokens,
+                           snapshot.dailyUsage == previous.dailyUsage, snapshot.failures.isEmpty {
+                            unchanged.insert(provider.id)
+                        }
+                        values.removeAll { $0.providerID == provider.id }
+                        values.append(snapshot)
+                        AppLog.usage.debug("provider refreshed: \(provider.id, privacy: .public)")
                     }
-                    values.removeAll { $0.providerID == provider.id }
-                    values.append(snapshot)
-                    AppLog.usage.debug("provider refreshed: \(provider.id, privacy: .public)")
                 } catch {
                     errors[provider.id] = error as? UsageFailure ?? .accountUnavailable
                     AppLog.usage.error("provider refresh failed: \(provider.id, privacy: .public)")

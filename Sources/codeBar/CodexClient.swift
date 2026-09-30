@@ -32,7 +32,7 @@ final class CodexClient {
         do { try process.run() } catch { throw UsageFailure.cliMissing }
         do {
             _ = try request("initialize", params: [
-                "clientInfo": ["name": "codebar", "title": "codeBar", "version": "0.1.1"],
+                "clientInfo": ["name": "codebar", "title": "codeBar", "version": "0.1.2"],
                 "capabilities": ["experimentalApi": true]
             ])
             try send(["method": "initialized"])
