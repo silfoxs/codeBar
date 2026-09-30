@@ -36,12 +36,6 @@ struct UsagePopoverView: View {
                 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 14) {
-                        ForEach(model.providers, id: \.id) { provider in
-                            if let error = model.failures[provider.id] {
-                                Label(provider.displayName + ": " + model.message(error), systemImage: "exclamationmark.triangle")
-                                    .font(.caption).foregroundStyle(.orange)
-                            }
-                        }
                         ForEach(model.visibleSnapshots) { snapshot in
                             UsageSection(snapshot: snapshot, model: model)
                                 .padding(.vertical, 4)
@@ -145,13 +139,6 @@ struct UsageSection: View {
             RecentUsageChart(snapshot: snapshot, model: model)
             }
             .modifier(UsageBlockHover(id: snapshot.id + "/tokens", model: model))
-            ForEach(Array(snapshot.failures.enumerated()), id: \.offset) { _, error in
-                Text(model.message(error)).font(.caption).foregroundStyle(.orange)
-            }
-            if model.failures[snapshot.providerID] != nil {
-                Text(model.text("刷新失败，以上为上次读取的数据。", "Refresh failed; showing the previous reading."))
-                    .font(.caption).foregroundStyle(.orange)
-            }
         }
     }
 
